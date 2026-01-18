@@ -1,19 +1,17 @@
 package com.config;
 
-import org.springframework.boot.security.autoconfigure.web.servlet.SecurityFilterProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.password.CompromisedPasswordChecker;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.password.HaveIBeenPwnedRestApiPasswordChecker;
+
+import javax.sql.DataSource;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -22,12 +20,11 @@ public class ProjectSecurityConfig {
 
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) {
-//        http.authorizeHttpRequests((requests) ->
-//                requests.anyRequest().permitAll());
-//        http.authorizeHttpRequests((requests) ->
-//                requests.anyRequest().denyAll());
-        http.authorizeHttpRequests((requests) ->
-            requests.requestMatchers(
+        http
+            .csrf(csrfConfig->
+                   csrfConfig.disable() )
+            .authorizeHttpRequests((requests) ->
+                requests.requestMatchers(
                 "/myAccount",
                 "/myBalance",
                 "/myLoans",
@@ -35,7 +32,8 @@ public class ProjectSecurityConfig {
                     .requestMatchers(
         "/notices",
                  "/contact",
-                 "/error").permitAll());
+                 "/error",
+                 "/register").permitAll());
 
         http.formLogin(withDefaults());
         http.httpBasic(withDefaults());
@@ -43,19 +41,9 @@ public class ProjectSecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(){
-        UserDetails user=User.withUsername("username")
-                .password("{bcrypt}$2a$12$jP8bH79517IpVRpTbrHBo.LK4QKiEBpMTgv0CffmKlUEt0O6M0Zay")
-//                .password("{noop}password")
-                .authorities("read")
-                .build();
-        //dPsS89108!
-        UserDetails admin=User.withUsername("admin")
-                .password("{bcrypt}$2a$12$jP8bH79517IpVRpTbrHBo.LK4QKiEBpMTgv0CffmKlUEt0O6M0Zay")
-                .authorities("admin")
-                .build();
+    public UserDetailsService userDetailsService(DataSource dataSource){
 
-        return new InMemoryUserDetailsManager(user,admin);
+        return new JdbcUserDetailsManager(dataSource);
     }
 
     @Bean
